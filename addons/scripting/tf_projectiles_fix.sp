@@ -290,8 +290,8 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 		// Yep, get index
 		new entidx = TR_GetEntityIndex();
 
-		// Make sure its valid entity and its actually an enemy
-		if (IsValidEntity(entidx) && IsValidClient(owner)
+		// Make sure entity is valid and its valid enemy player
+		if (IsValidClient(entidx) && IsValidClient(owner)
 		&&  GetTeam(entidx) != GetTeam(owner))
 		{
 			// Retrieve the changed collision group for hit projectile
