@@ -255,7 +255,7 @@ public OnProjectileSpawned(projectile)
 	// Set the collision group for created projectile depends on own group
 	switch (GetEntData(projectile, m_CollisionGroup))
 	{
-		//case 20: // CG for cleaver, jars, pipe bombs and probably throwable?
+		//case 20: // CG for cleaver, jars, pipe bombs and probably throwable ?
 		case 24: SetEntData(projectile, m_CollisionGroup, 3, 4, true); // CG for or arrows, flares, rockets and unused crossbow bolt
 		//default: // Real projectiles (such as syringes and scout ballz)
 	}
@@ -291,7 +291,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 		new entidx = TR_GetEntityIndex();
 
 		// Make sure its valid entity and its actually an enemy
-		if (IsValidEntity(entidx) && IsValidClient(entidx)
+		if (IsValidEntity(entidx) && IsValidClient(owner)
 		&&  GetTeam(entidx) != GetTeam(owner))
 		{
 			// Retrieve the changed collision group for hit projectile
