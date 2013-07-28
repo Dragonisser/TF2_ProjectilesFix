@@ -100,14 +100,15 @@ public OnPluginStart()
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow arrow to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[arrow], arrow);
 
-	// Not yet supported
-	/*FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[ball_ornament]);
+	/* Not yet supported
+	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[ball_ornament]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow ball ornament to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[ball_ornament], ball_ornament);
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[cleaver]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow cleaver to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
-	SetTrieValue(ProjectilesTrie, tf_projectiles[cleaver], cleaver);*/
+	SetTrieValue(ProjectilesTrie, tf_projectiles[cleaver], cleaver);
+	*/
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[energy_ball]);
 
@@ -125,7 +126,8 @@ public OnPluginStart()
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow flare to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[flare], flare);
 
-	/*FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[healing_bolt]);
+	/*
+	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[healing_bolt]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow crossbow bolt to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[healing_bolt], healing_bolt);
 
@@ -143,7 +145,8 @@ public OnPluginStart()
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[pipe_remote]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow sticky projectile to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
-	SetTrieValue(ProjectilesTrie, tf_projectiles[pipe_remote], pipe_remote);*/
+	SetTrieValue(ProjectilesTrie, tf_projectiles[pipe_remote], pipe_remote);
+	*/
 
 	// I call this 'KyleS StylE', and that's good because you dont need to always retrieve ConVar handle
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[rocket]);
@@ -156,7 +159,8 @@ public OnPluginStart()
 	// It saves memory much when many CVars are created, and its very important in our case when OnEntityCreated() forward is used
 	SetTrieValue(ProjectilesTrie, tf_projectiles[sentryrocket], sentryrocket);
 
-	/*FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[stun_ball]);
+	/*
+	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[stun_ball]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow stun ball to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[stun_ball], stun_ball);
 
@@ -166,7 +170,8 @@ public OnPluginStart()
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[throwable]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow throwable projectile to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
-	SetTrieValue(ProjectilesTrie, tf_projectiles[throwable], throwable);*/
+	SetTrieValue(ProjectilesTrie, tf_projectiles[throwable], throwable);
+	*/
 
 	// Add CVars into config
 	AutoExecConfig(true, "tf_projectiles_fix");
@@ -270,10 +275,9 @@ public OnProjectileSpawned(projectile)
  * ---------------------------------------------------------------- */
 public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:result)
 {
-	// ShouldCollide called 66 times per second, but only once when it hits player
+	// ShouldCollide called 66 times per second, but for projectiles only once when it hits player
 	decl Float:vecPos[3], Float:vecAng[3], owner;
 
-	// Get vecOrigin and vecAbsOrigin
 	GetEntDataVector(entity, m_vecOrigin,    vecPos);
 	GetEntDataVector(entity, m_vecAbsOrigin, vecAng);
 
@@ -284,10 +288,9 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 	// TR(StartPos, DirectPos, player contentsmask, for infinite time and with filter (which includes owner index))
 	TR_TraceRayFilter(vecPos, vecAng, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter, owner);
 
-	// Are we hit something?
 	if (TR_DidHit())
 	{
-		// Yep, get index
+		// We hit something! Get the index
 		new entidx = TR_GetEntityIndex();
 
 		// Make sure player is valid and teams are different
@@ -314,7 +317,6 @@ public bool:TraceFilter(this, contentsMask, any:client)
 	if (IsValidEntity(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
-		// false
 		return false;
 	}
 
@@ -332,9 +334,8 @@ GetProjectileOwner(entity)
 	// Find the owner offset
 	if (!offsetOwner && (offsetOwner = FindDataMapOffs(entity, "m_hOwnerEntity")) == -1)
 	{
+		// If datamap offset was not found - set owner as a world
 		LogError("Error: Unable to find datamap offset: \"m_hOwnerEntity\" !");
-
-		// Set owner as world then
 		return 0;
 	}
 
