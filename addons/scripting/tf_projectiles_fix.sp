@@ -177,7 +177,7 @@ public OnPluginStart()
 	// Find a networkable send property offset for projectiles collision
 	if ((m_CollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup")) == -1)
 	{
-		SetFailState("Fatal Error: Unable to find \"CBaseEntity::m_CollisionGroup\" offset!");
+		SetFailState("Fatal Error: Unable to find property offset \"CBaseEntity::m_CollisionGroup\"!");
 	}
 }
 
@@ -290,8 +290,8 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 		// Yep, get index
 		new entidx = TR_GetEntityIndex();
 
-		// Make sure entity is valid and its valid enemy player
-		if (IsValidClient(entidx) && IsValidClient(owner)
+		// Make sure entity and 'owner' edict is validated
+		if (IsValidClient(entidx) && IsValidEdict(owner)
 		&&  GetTeam(entidx) != GetTeam(owner))
 		{
 			// Retrieve the changed collision group for hit projectile
@@ -311,11 +311,11 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
  * ---------------------------------------------------------------- */
 public bool:TraceFilter(this, contentsMask, any:client)
 {
-	// Both entity and player should be valid, and entity didnt hit itself
+	// Both projectile and player should be valid and didnt hit itselfs
 	if (IsValidEntity(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
-		// Filter
+		// false
 		return false;
 	}
 
@@ -339,7 +339,7 @@ GetProjectileOwner(entity)
 		return 0;
 	}
 
-	// m_hOwnerEntity is always a player, so we have to use GetEntDataEnt2
+	// m_hOwnerEntity is always a player - so we have to use GetEntDataEnt2
 	return GetEntDataEnt2(entity, offsetOwner);
 }
 
