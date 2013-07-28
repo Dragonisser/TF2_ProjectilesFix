@@ -2,7 +2,7 @@
 * Projectiles Fix by Root
 *
 * Description:
-*   Fixes projectiles not flying through team mates in Team Fortress.
+*   Fixes projectiles not flying through team mates in Team Fortress 2.
 *
 * Version 1.0.0
 * Changelog & more info at http://goo.gl/4nKhJ
@@ -10,13 +10,13 @@
 
 #pragma semicolon 1
 
-// ====[ INCLUDES ]=================================================
+// ====[ INCLUDES ]================================================
 #include <sdkhooks>
 #include <sdktools_trace>
 #undef REQUIRE_PLUGIN
 #include <updater>
 
-// ====[ CONSTANTS ]================================================
+// ====[ CONSTANTS ]===============================================
 #define PLUGIN_NAME    "[TF2] Projectiles Fix"
 #define PLUGIN_VERSION "1.0.0"
 
@@ -26,12 +26,12 @@
 enum
 {
 	arrow,           // 24
-	//ball_ornament, // 13 Other than 24 are not (yet) supported
+	//ball_ornament, // 13 // Other than 24 are not yet supported
 	//cleaver,       // 20
 	energy_ball,     // 24
 	energy_ring,     // 24
 	flare,           // 24
-	//healing_bolt,  // 24 Pointless and working anyways
+	//healing_bolt,  // 24  // Pointless and not working anyways
 	//jar,           // 20
 	//jar_milk,      // 20
 	//pipe,          // 20
@@ -63,13 +63,13 @@ static const String:tf_projectiles[][] =
 	//"throwable"
 };
 
-// ====[ VARIABLES ]================================================
+// ====[ VARIABLES ]===============================================
 new	Handle:ProjectilesTrie,
 	m_vecOrigin,      // origin of a projectile
 	m_vecAbsOrigin,   // abs origin of a projectile
 	m_CollisionGroup; // to set collision group
 
-// ====[ PLUGIN ]===================================================
+// ====[ PLUGIN ]==================================================
 public Plugin:myinfo =
 {
 	name        = PLUGIN_NAME,
@@ -83,19 +83,19 @@ public Plugin:myinfo =
 /* OnPluginStart()
  *
  * When the plugin starts up.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public OnPluginStart()
 {
 	// Create Version ConVar
 	CreateConVar("tf_projectiles_fix_version", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
-	// Register ConVars, but I dont want to use global handles
+	// Register ConVars. But I dont want to use global handles!
 	decl Handle:Registar, String:cvarname[32];
 
-	// Create trie with projectile names and their keys
+	// Create trie with projectile names and the keys
 	ProjectilesTrie = CreateTrie();
 
-	// Determine a name of the ConVar
+	// Format a name of the ConVar
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[arrow]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow arrow to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[arrow], arrow);
@@ -171,7 +171,7 @@ public OnPluginStart()
 	// Add CVars into config
 	AutoExecConfig(true, "tf_projectiles_fix");
 
-	// I HATE Handles. (c) KyleS
+	// I HATE Handles (c) KyleS
 	CloseHandle(Registar);
 
 	// Find a networkable send property offset for projectiles collision
@@ -184,10 +184,10 @@ public OnPluginStart()
 /* OnConVarChange()
  *
  * Called when ConVar value has changed.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public OnConVarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	// Declare old key in trie, new key, and the cvar name
+	// Declare new and old keys from trie and the cvar name
 	decl oldNum, newNum, i, String:cvarName[32];
 
 	// This callback will not automatically hook changes for every single CVar, so we have to check which CVar value has changed via name
@@ -207,26 +207,26 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 		}
 	}
 
-	// Boolin'
+	// Value is bool
 	switch (StringToInt(newValue))
 	{
-		case false: RemoveFromTrie(ProjectilesTrie, tf_projectiles[oldNum]);  // Remove a CVar key from projectiles trie
-		case true: SetTrieValue(ProjectilesTrie, cvarName[7], newNum, false); // Register new CVar key, but dont overwrite previous on match
+		case false: RemoveFromTrie(ProjectilesTrie, tf_projectiles[oldNum]);  // Remove a key from projectiles trie
+		case true: SetTrieValue(ProjectilesTrie, cvarName[7], newNum, false); // Register new key, but dont overwrite previous one on match
 	}
 }
 
 /* OnEntityCreated()
  *
  * When an entity is created.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public OnEntityCreated(entity, const String:classname[])
 {
 	decl projectile;
 
-	// Skip the first 14 characters in classname string to avoid comparing with the "tf_projectile_" prefix - optimizations
+	// Skip the first 14 characters in classname string to avoid comparing with the "tf_projectile_" prefix (optimizations)
 	if (GetTrieValue(ProjectilesTrie, classname[14], projectile))
 	{
-		// If I'd use not Post hook (with new collision group), plugin would never detect when it collides with player
+		// If I'd use not Post hook (with new collision group), plugin would never detect when projectile collides with a players
 		SDKHook(entity, SDKHook_SpawnPost, OnProjectileSpawned);
 	}
 }
@@ -234,25 +234,25 @@ public OnEntityCreated(entity, const String:classname[])
 /* OnProjectileSpawned()
  *
  * When a projectile successfully spawned.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public OnProjectileSpawned(projectile)
 {
-	// Find datamap property offset for m_vecOrigin to define starting position for trace ray
+	// Find datamap property offset for m_vecOrigin to define starting position for trace
 	if (!m_vecOrigin && (m_vecOrigin = FindDataMapOffs(projectile, "m_vecOrigin")) == -1)
 	{
 		LogError("Error: Unable to find datamap offset: \"m_vecOrigin\"!");
 		return;
 	}
 
-	// Find datamap property offset for m_vecAbsOrigin to define direction angle for trace ray
+	// Find datamap property offset for m_vecAbsOrigin to define direction angle for trace
 	if (!m_vecAbsOrigin && (m_vecAbsOrigin = FindDataMapOffs(projectile, "m_vecAbsOrigin")) == -1)
 	{
-		// If not found - just dont do anything and log an error
+		// If not found - just dont do anything and error out
 		LogError("Error: Unable to find datamap offset: \"m_vecAbsOrigin\"!");
 		return;
 	}
 
-	// Set the collision group for created projectile depends on own collision
+	// Set the collision group for created projectile depends on own group
 	switch (GetEntData(projectile, m_CollisionGroup))
 	{
 		//case 20: // CG for cleaver, jars, pipe bombs and probably throwable?
@@ -267,10 +267,10 @@ public OnProjectileSpawned(projectile)
 /* OnProjectileCollide()
  *
  * A ShouldCollide hook for given projectile.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:result)
 {
-	// ShouldCollide called 66 times per second, but only when it hits a player
+	// ShouldCollide called 66 times per second, but only once when it hits player
 	decl Float:vecPos[3], Float:vecAng[3], owner;
 
 	// Get vecOrigin and vecAbsOrigin
@@ -281,16 +281,16 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 	owner = GetProjectileOwner(entity);
 
 	// Create TraceRay to check whether or not projectiles goes through a valid player
-	// TR(StartPos, DirectPos, player contentsmask, for infinite time, with filter (which includes owner index))
+	// TR(StartPos, DirectPos, player contentsmask, for infinite time and with filter (which includes owner index))
 	TR_TraceRayFilter(vecPos, vecAng, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter, owner);
 
 	// Are we hit something?
 	if (TR_DidHit())
 	{
-		// Yep, get its index
+		// Yep, get index
 		new entidx = TR_GetEntityIndex();
 
-		// Make sure its valid entity and its actually enemy
+		// Make sure its valid entity and its actually an enemy
 		if (IsValidEntity(entidx) && IsValidClient(entidx)
 		&&  GetTeam(entidx) != GetTeam(owner))
 		{
@@ -298,7 +298,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 			switch (GetEntData(entity, m_CollisionGroup))
 			{
 				//case num: // Cleaver, jars, pipe bombs
-				case 3: SetEntData(entity, m_CollisionGroup, 24, 4, true); // I use 3 for rockets to prevent flying through buildings
+				case 3: SetEntData(entity, m_CollisionGroup, 24, 4, true); // I use 3 for projectiles to prevent flying through buildings
 				//default: // Syringes, scout ballz
 			}
 		}
@@ -308,14 +308,14 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 /* TraceFilter()
  *
  * Whether or not we should trace through 'this'.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 public bool:TraceFilter(this, contentsMask, any:client)
 {
-	// Both entity and player is valid, and entity didnt hit itself
+	// Both entity and player should be valid, and entity didnt hit itself
 	if (IsValidEntity(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
-		// Dont trace
+		// Filter
 		return false;
 	}
 
@@ -325,26 +325,26 @@ public bool:TraceFilter(this, contentsMask, any:client)
 /* GetProjectileOwner()
  *
  * Retrieves an 'owner' of projectile.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 GetProjectileOwner(entity)
 {
 	static offsetOwner;
 
-	// Find the datamap offset
+	// Find the owner
 	if (!offsetOwner && (offsetOwner = FindDataMapOffs(entity, "m_hOwnerEntity")) == -1)
 	{
 		LogError("Error: Unable to find datamap offset: \"m_hOwnerEntity\"!");
 
-		// Set owner as 'world'
+		// Set owner as world then
 		return 0;
 	}
 
-	// m_hOwnerEntity is always a player, we have to use GetEntDataEnt2
+	// m_hOwnerEntity is always a player, so we have to use GetEntDataEnt2
 	return GetEntDataEnt2(entity, offsetOwner);
 }
 
 /* IsValidClient()
  *
  * Default 'valid client' check.
- * ----------------------------------------------------------------- */
+ * ---------------------------------------------------------------- */
 bool:IsValidClient(client) return (client > 0 && client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client)) ? true : false;
