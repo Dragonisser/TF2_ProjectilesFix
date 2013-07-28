@@ -2,7 +2,7 @@
 * Projectiles Fix by Root
 *
 * Description:
-*   Fixes projectiles not flying through team mates in Team Fortress 2.
+*   Simply fixes projectiles not flying through team mates in Team Fortress 2.
 *
 * Version 1.0.0
 * Changelog & more info at http://goo.gl/4nKhJ
@@ -26,7 +26,7 @@
 enum
 {
 	arrow,           // 24
-	//ball_ornament, // 13 // Other than 24 are not yet supported
+	//ball_ornament, // 13 // Other than 24 are not (yet) supported
 	//cleaver,       // 20
 	energy_ball,     // 24
 	energy_ring,     // 24
@@ -74,7 +74,7 @@ public Plugin:myinfo =
 {
 	name        = PLUGIN_NAME,
 	author      = "Root",
-	description = "Fixes projectiles not flying through team mates",
+	description = "Simply fixes projectiles not flying through team mates",
 	version     = PLUGIN_VERSION,
 	url         = "forums.alliedmods.net/showthread.php?p=221955"
 };
@@ -177,7 +177,7 @@ public OnPluginStart()
 	// Find a networkable send property offset for projectiles collision
 	if ((m_CollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup")) == -1)
 	{
-		SetFailState("Fatal Error: Unable to find property offset \"CBaseEntity::m_CollisionGroup\"!");
+		SetFailState("Fatal Error: Unable to find property offset: \"CBaseEntity::m_CollisionGroup\" !");
 	}
 }
 
@@ -240,7 +240,7 @@ public OnProjectileSpawned(projectile)
 	// Find datamap property offset for m_vecOrigin to define starting position for trace
 	if (!m_vecOrigin && (m_vecOrigin = FindDataMapOffs(projectile, "m_vecOrigin")) == -1)
 	{
-		LogError("Error: Unable to find datamap offset: \"m_vecOrigin\"!");
+		LogError("Error: Unable to find datamap offset: \"m_vecOrigin\" !");
 		return;
 	}
 
@@ -248,7 +248,7 @@ public OnProjectileSpawned(projectile)
 	if (!m_vecAbsOrigin && (m_vecAbsOrigin = FindDataMapOffs(projectile, "m_vecAbsOrigin")) == -1)
 	{
 		// If not found - just dont do anything and error out
-		LogError("Error: Unable to find datamap offset: \"m_vecAbsOrigin\"!");
+		LogError("Error: Unable to find datamap offset: \"m_vecAbsOrigin\" !");
 		return;
 	}
 
@@ -290,15 +290,14 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 		// Yep, get index
 		new entidx = TR_GetEntityIndex();
 
-		// Make sure entity and 'owner' edict is validated
-		if (IsValidClient(entidx) && IsValidEdict(owner)
-		&&  GetTeam(entidx) != GetTeam(owner))
+		// Make sure player is valid and teams are different
+		if (IsValidClient(entidx) && GetTeam(entidx) != GetTeam(entity))
 		{
 			// Retrieve the changed collision group for hit projectile
 			switch (GetEntData(entity, m_CollisionGroup))
 			{
 				//case num: // Cleaver, jars, pipe bombs
-				case 3: SetEntData(entity, m_CollisionGroup, 24, 4, true); // I use 3 for projectiles to prevent flying through buildings
+				case 3: SetEntData(entity, m_CollisionGroup, 24, 4, true); // Use 3 for projectiles to prevent flying through buildings
 				//default: // Syringes, scout ballz
 			}
 		}
@@ -330,16 +329,16 @@ GetProjectileOwner(entity)
 {
 	static offsetOwner;
 
-	// Find the owner
+	// Find the owner offset
 	if (!offsetOwner && (offsetOwner = FindDataMapOffs(entity, "m_hOwnerEntity")) == -1)
 	{
-		LogError("Error: Unable to find datamap offset: \"m_hOwnerEntity\"!");
+		LogError("Error: Unable to find datamap offset: \"m_hOwnerEntity\" !");
 
 		// Set owner as world then
 		return 0;
 	}
 
-	// m_hOwnerEntity is always a player - so we have to use GetEntDataEnt2
+	// m_hOwnerEntity is always a player so we have to use GetEntDataEnt2
 	return GetEntDataEnt2(entity, offsetOwner);
 }
 
