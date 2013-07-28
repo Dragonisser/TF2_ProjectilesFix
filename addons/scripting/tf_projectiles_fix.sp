@@ -76,7 +76,7 @@ public Plugin:myinfo =
 	author      = "Root",
 	description = "Fixes projectiles not flying through team mates",
 	version     = PLUGIN_VERSION,
-	url         = "forums.alliedmods.net/showthread.php?p=1807594"
+	url         = "forums.alliedmods.net/showthread.php?p=221955"
 };
 
 
@@ -169,7 +169,7 @@ public OnPluginStart()
 	SetTrieValue(ProjectilesTrie, tf_projectiles[throwable], throwable);*/
 
 	// Add CVars into config
-	AutoExecConfig(true, "tf_projectile_fix");
+	AutoExecConfig(true, "tf_projectiles_fix");
 
 	// I HATE Handles. (c) KyleS
 	CloseHandle(Registar);
