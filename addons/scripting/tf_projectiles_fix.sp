@@ -91,7 +91,7 @@ public Plugin:myinfo =
 	author      = "Root",
 	description = "Simply fixes projectiles not flying through team mates",
 	version     = PLUGIN_VERSION,
-	url         = "forums.alliedmods.net/showthread.php?p=221955"
+	url         = "forums.alliedmods.net/showthread.php?p=2000641"
 };
 
 
@@ -143,7 +143,7 @@ public OnPluginStart()
 
 	/*
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[healing_bolt]);
-	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow crossbow bolt to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
+	HookConVarChange((Registar = CreateConVar(cvarname, "0", "Allow crossbow bolt to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[healing_bolt], healing_bolt);
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[jar]);
@@ -163,7 +163,7 @@ public OnPluginStart()
 	SetTrieValue(ProjectilesTrie, tf_projectiles[pipe_remote], pipe_remote);
 	*/
 
-	// I call this 'KyleS StylE', and that's good because you dont need to always retrieve ConVar handle
+	// I call this 'KyleS' style, and that's good because you dont need to always retrieve ConVar handle
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[rocket]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow rocket projectile to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[rocket], rocket);
@@ -248,7 +248,7 @@ public OnBossEvents(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	// Since bosses dont have collision group and no contentsmask, we have to unhook projectiles
 	if (StrContains(name, "summoned",     false) != -1) HookProjectiles = false;
-	else if (StrContains(name, "killed",  false) != -1  // Boss has escaped or killed - enable hook
+	else if (StrContains(name, "killed",  false) != -1  // Boss has escaped or killed, enable hook
 	||       StrContains(name, "escaped", false) != -1  // Or new round is started
 	||       StrContains(name, "start",   false) != -1) HookProjectiles = true;
 }
