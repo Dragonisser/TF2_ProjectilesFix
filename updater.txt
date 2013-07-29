@@ -4,9 +4,12 @@
 	{
 		"Version"
 		{
-			"Latest"		"1.0.0"
+			"Latest"		"1.0.1"
 			"Previous"		"1.0.0
 		}
+
+		"Notes"	"Changes in 1.0.1:"
+		"Notes"	"Fixed a bug when projectiles flying through bosses"
 	}
 
 	"Files"

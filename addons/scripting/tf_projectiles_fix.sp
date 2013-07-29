@@ -4,7 +4,7 @@
 * Description:
 *   Simply fixes projectiles not flying through team mates in Team Fortress 2.
 *
-* Version 1.0.0
+* Version 1.0.1
 * Changelog & more info at http://goo.gl/4nKhJ
 */
 
@@ -18,7 +18,7 @@
 
 // ====[ CONSTANTS ]===============================================
 #define PLUGIN_NAME    "[TF2] Projectiles Fix"
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.0.1"
 
 #define UPDATE_URL     "https://raw.github.com/zadroot/TF2_ProjectilesFix/master/updater.txt"
 #define GetTeam(%1)    (GetEntProp(%1, Prop_Send, "m_iTeamNum"))
@@ -26,7 +26,7 @@
 enum
 {
 	arrow,           // 24
-	//ball_ornament, // 13 // Other than 24 are not (yet) supported
+	//ball_ornament, // 13 // Other than 24 are not yet supported
 	//cleaver,       // 20
 	energy_ball,     // 24
 	energy_ring,     // 24
@@ -63,11 +63,26 @@ static const String:tf_projectiles[][] =
 	//"throwable"
 };
 
+static const String:boss_events[][] =
+{
+	"pumpkin_lord_summoned",
+	"pumpkin_lord_killed",
+	"merasmus_summoned",
+	"merasmus_killed",
+	"merasmus_escaped",
+	"eyeball_boss_summoned",
+	"eyeball_boss_killed",
+	"eyeball_boss_escaped",
+	"teamplay_round_start",
+	"arena_round_start"
+};
+
 // ====[ VARIABLES ]===============================================
 new	Handle:ProjectilesTrie,
+	bool:HookProjectiles,
 	m_vecOrigin,      // origin of a projectile
 	m_vecAbsOrigin,   // abs origin of a projectile
-	m_CollisionGroup; // to set collision group
+	m_CollisionGroup;
 
 // ====[ PLUGIN ]==================================================
 public Plugin:myinfo =
@@ -89,13 +104,13 @@ public OnPluginStart()
 	// Create Version ConVar
 	CreateConVar("tf_projectiles_fix_version", PLUGIN_VERSION, PLUGIN_NAME, FCVAR_NOTIFY|FCVAR_DONTRECORD);
 
-	// Register ConVars. But I dont want to use global handles!
+	// Register ConVars without using global handles
 	decl Handle:Registar, String:cvarname[32];
 
-	// Create trie with projectile names and the keys
+	// Create trie with projectile names
 	ProjectilesTrie = CreateTrie();
 
-	// Format a name of the ConVar
+	// Set a name of the ConVar
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[arrow]);
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow arrow to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[arrow], arrow);
@@ -112,7 +127,7 @@ public OnPluginStart()
 
 	FormatEx(cvarname, sizeof(cvarname), "sm_fix_%s", tf_projectiles[energy_ball]);
 
-	// Register ConVar and hook changes immediate
+	// Hook changes immediately
 	HookConVarChange((Registar = CreateConVar(cvarname, "1", "Allow energy ball to fly through team mates?", FCVAR_PLUGIN, true, 0.0, true, 1.0)), OnConVarChange);
 	SetTrieValue(ProjectilesTrie, tf_projectiles[energy_ball], energy_ball);
 
@@ -173,7 +188,7 @@ public OnPluginStart()
 	SetTrieValue(ProjectilesTrie, tf_projectiles[throwable], throwable);
 	*/
 
-	// Add CVars into config
+	// Add ConVars into config
 	AutoExecConfig(true, "tf_projectiles_fix");
 
 	// I HATE Handles (c) KyleS
@@ -182,7 +197,13 @@ public OnPluginStart()
 	// Find a networkable send property offset for projectiles collision
 	if ((m_CollisionGroup = FindSendPropOffs("CBaseEntity", "m_CollisionGroup")) == -1)
 	{
-		SetFailState("Fatal Error: Unable to find property offset: \"CBaseEntity::m_CollisionGroup\" !");
+		SetFailState("Fatal Error: Unable to find offset \"CBaseEntity::m_CollisionGroup\" !");
+	}
+
+	// Hook some boss events, because for some reasons projectiles goes through them
+	for (new i = 0; i < sizeof(boss_events); i++)
+	{
+		HookEvent(boss_events[i], OnBossEvents, EventHookMode_PostNoCopy);
 	}
 }
 
@@ -195,7 +216,7 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 	// Declare new and old keys from trie and the cvar name
 	decl oldNum, newNum, i, String:cvarName[32];
 
-	// This callback will not automatically hook changes for every single CVar, so we have to check which CVar value has changed via name
+	// This callback will not automatically hook changes for every single CVar, so we have to check for what CVar value has changed
 	GetConVarName(convar, cvarName, sizeof(cvarName));
 
 	// Skip the first 7 characters in name string to avoid comparing with the "sm_fix_"
@@ -212,12 +233,24 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 		}
 	}
 
-	// Value is bool
 	switch (StringToInt(newValue))
 	{
 		case false: RemoveFromTrie(ProjectilesTrie, tf_projectiles[oldNum]);  // Remove a key from projectiles trie
 		case true: SetTrieValue(ProjectilesTrie, cvarName[7], newNum, false); // Register new key, but dont overwrite previous one on match
 	}
+}
+
+/* OnBossEvents()
+ *
+ * Called when game bosses are spawning, escaping or dying.
+ * ---------------------------------------------------------------- */
+public OnBossEvents(Handle:event, const String:name[], bool:dontBroadcast)
+{
+	// Since bosses dont have collision group and no contentsmask, we have to unhook projectiles
+	if (StrContains(name, "summoned",     false) != -1) HookProjectiles = false;
+	else if (StrContains(name, "killed",  false) != -1  // Boss has escaped or killed - enable hook
+	||       StrContains(name, "escaped", false) != -1  // Or new round is started
+	||       StrContains(name, "start",   false) != -1) HookProjectiles = true;
 }
 
 /* OnEntityCreated()
@@ -229,7 +262,7 @@ public OnEntityCreated(entity, const String:classname[])
 	decl projectile;
 
 	// Skip the first 14 characters in classname string to avoid comparing with the "tf_projectile_" prefix (optimizations)
-	if (GetTrieValue(ProjectilesTrie, classname[14], projectile))
+	if (HookProjectiles && GetTrieValue(ProjectilesTrie, classname[14], projectile))
 	{
 		// If I'd use not Post hook (with new collision group), plugin would never detect when projectile collides with a players
 		SDKHook(entity, SDKHook_SpawnPost, OnProjectileSpawned);
@@ -245,7 +278,7 @@ public OnProjectileSpawned(projectile)
 	// Find datamap property offset for m_vecOrigin to define starting position for trace
 	if (!m_vecOrigin && (m_vecOrigin = FindDataMapOffs(projectile, "m_vecOrigin")) == -1)
 	{
-		LogError("Error: Unable to find datamap offset: \"m_vecOrigin\" !");
+		LogError("Unable to find datamap offset: \"m_vecOrigin\" !");
 		return;
 	}
 
@@ -253,7 +286,7 @@ public OnProjectileSpawned(projectile)
 	if (!m_vecAbsOrigin && (m_vecAbsOrigin = FindDataMapOffs(projectile, "m_vecAbsOrigin")) == -1)
 	{
 		// If not found - just dont do anything and error out
-		LogError("Error: Unable to find datamap offset: \"m_vecAbsOrigin\" !");
+		LogError("Unable to find datamap offset: \"m_vecAbsOrigin\" !");
 		return;
 	}
 
@@ -261,7 +294,10 @@ public OnProjectileSpawned(projectile)
 	switch (GetEntData(projectile, m_CollisionGroup))
 	{
 		//case 20: // CG for cleaver, jars, pipe bombs and probably throwable ?
-		case 24: SetEntData(projectile, m_CollisionGroup, 3, 4, true); // CG for or arrows, flares, rockets and unused crossbow bolt
+		case 24:
+		{
+			SetEntData(projectile, m_CollisionGroup, 3, 4, true); // CG for or arrows, flares, rockets and unused crossbow bolt
+		}
 		//default: // Real projectiles (such as syringes and scout ballz)
 	}
 
@@ -275,9 +311,10 @@ public OnProjectileSpawned(projectile)
  * ---------------------------------------------------------------- */
 public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:result)
 {
-	// ShouldCollide called 66 times per second, but for projectiles only once when it hits player
+	// ShouldCollide called 66 times per second, but only once when it hits player
 	decl Float:vecPos[3], Float:vecAng[3], owner;
 
+	// Get vecOrigin and vecAbsOrigin
 	GetEntDataVector(entity, m_vecOrigin,    vecPos);
 	GetEntDataVector(entity, m_vecAbsOrigin, vecAng);
 
@@ -285,12 +322,13 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 	owner = GetProjectileOwner(entity);
 
 	// Create TraceRay to check whether or not projectiles goes through a valid player
-	// TR(StartPos, DirectPos, player contentsmask, for infinite time and with filter (which includes owner index))
+	// TR(StartPos, DirectPos, player's contentsmask, infinite and with filter (which includes owner index))
 	TR_TraceRayFilter(vecPos, vecAng, MASK_PLAYERSOLID, RayType_Infinite, TraceFilter, owner);
 
+	// Are we hit something?
 	if (TR_DidHit())
 	{
-		// We hit something! Get the index
+		// Yep, get its index
 		new entidx = TR_GetEntityIndex();
 
 		// Make sure player is valid and teams are different
@@ -300,7 +338,10 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 			switch (GetEntData(entity, m_CollisionGroup))
 			{
 				//case num: // Cleaver, jars, pipe bombs
-				case 3: SetEntData(entity, m_CollisionGroup, 24, 4, true); // Use 3 for projectiles to prevent flying through buildings
+				case 3:
+				{
+					SetEntData(entity, m_CollisionGroup, 24, 4, true); // Use 3 for projectiles to prevent flying through buildings
+				}
 				//default: // Syringes, scout ballz
 			}
 		}
@@ -313,7 +354,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
  * ---------------------------------------------------------------- */
 public bool:TraceFilter(this, contentsMask, any:client)
 {
-	// Both projectile and player should be valid and didnt hit itselfs
+	// Both projectile and player should be valid and didnt hit itself
 	if (IsValidEntity(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
@@ -334,8 +375,7 @@ GetProjectileOwner(entity)
 	// Find the owner offset
 	if (!offsetOwner && (offsetOwner = FindDataMapOffs(entity, "m_hOwnerEntity")) == -1)
 	{
-		// If datamap offset was not found - set owner as a world
-		LogError("Error: Unable to find datamap offset: \"m_hOwnerEntity\" !");
+		LogError("Unable to find datamap offset: \"m_hOwnerEntity\" !");
 		return 0;
 	}
 
