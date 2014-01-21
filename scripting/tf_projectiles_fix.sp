@@ -8,13 +8,11 @@
 * Changelog & more info at http://goo.gl/4nKhJ
 */
 
-#pragma semicolon 1
-
 // ====[ INCLUDES ]================================================
 #include <sdkhooks>
 #include <sdktools_trace>
 #undef REQUIRE_PLUGIN
-#include <updater>
+#tryinclude <updater>
 
 // ====[ CONSTANTS ]===============================================
 #define PLUGIN_NAME    "[TF2] Projectiles Fix"
@@ -188,9 +186,6 @@ public OnPluginStart()
 	SetTrieValue(ProjectilesTrie, tf_projectiles[throwable], throwable);
 	*/
 
-	// Add ConVars into config
-	AutoExecConfig(true, "tf_projectiles_fix");
-
 	// I HATE Handles (c) KyleS
 	CloseHandle(Registar);
 
@@ -201,12 +196,17 @@ public OnPluginStart()
 	}
 
 	// Hook some boss events, because for some reasons projectiles goes through them
-	for (new i = 0; i < sizeof(boss_events); i++)
+	for (new i; i < sizeof(boss_events); i++)
 	{
 		HookEvent(boss_events[i], OnBossEvents, EventHookMode_PostNoCopy);
 	}
-}
 
+	AutoExecConfig(true, "tf_projectiles_fix");
+
+#if defined _updater_included
+	if (LibraryExists("updater")) Updater_AddPlugin(UPDATE_URL);
+#endif
+}
 /* OnConVarChange()
  *
  * Called when ConVar value has changed.
@@ -214,7 +214,7 @@ public OnPluginStart()
 public OnConVarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
 	// Declare new and old keys from trie and the cvar name
-	decl oldNum, newNum, i, String:cvarName[32];
+	decl oldNum, newNum, String:cvarName[32];
 
 	// This callback will not automatically hook changes for every single CVar, so we have to check for what CVar value has changed
 	GetConVarName(convar, cvarName, sizeof(cvarName));
@@ -222,7 +222,7 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
 	// Skip the first 7 characters in name string to avoid comparing with the "sm_fix_"
 	GetTrieValue(ProjectilesTrie, cvarName[7], oldNum);
 
-	for (i = 0; i < sizeof(tf_projectiles); i++)
+	for (new i; i < sizeof(tf_projectiles); i++) // i=0
 	{
 		// If cvarname is equal to any which is in projectiles trie,
 		if (StrEqual(cvarName[7], tf_projectiles[i]))
@@ -248,7 +248,7 @@ public OnBossEvents(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	// Since bosses dont have collision group and no contentsmask, we have to unhook projectiles
 	if (StrContains(name, "summoned",     false) != -1) HookProjectiles = false;
-	else if (StrContains(name, "killed",  false) != -1  // Boss has escaped or killed, enable hook
+	else if (StrContains(name, "killed",  false) != -1  // Enable hook if boss has escaped/killed
 	||       StrContains(name, "escaped", false) != -1  // Or new round is started
 	||       StrContains(name, "start",   false) != -1) HookProjectiles = true;
 }
@@ -354,7 +354,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
  * ---------------------------------------------------------------- */
 public bool:TraceFilter(this, contentsMask, any:client)
 {
-	// Both projectile and player should be valid and didnt hit itself
+	// Both projectile and player should be valid
 	if (IsValidEntity(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
@@ -379,7 +379,7 @@ GetProjectileOwner(entity)
 		return 0;
 	}
 
-	// m_hOwnerEntity is always a player so we have to use GetEntDataEnt2
+	// m_hOwnerEntity always returns a player index
 	return GetEntDataEnt2(entity, offsetOwner);
 }
 
@@ -387,4 +387,4 @@ GetProjectileOwner(entity)
  *
  * Default 'valid client' check.
  * ---------------------------------------------------------------- */
-bool:IsValidClient(client) return (client > 0 && client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client)) ? true : false;
+bool:IsValidClient(client) return (1 <= client <= MaxClients && IsClientInGame(client) && IsPlayerAlive(client)) ? true : false;
