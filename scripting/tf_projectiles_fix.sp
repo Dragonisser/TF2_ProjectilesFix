@@ -201,6 +201,7 @@ public OnPluginStart()
 		HookEvent(boss_events[i], OnBossEvents, EventHookMode_PostNoCopy);
 	}
 
+	// Create and execute plugin config at every map change
 	AutoExecConfig(true, "tf_projectiles_fix");
 
 #if defined _updater_included
@@ -213,30 +214,29 @@ public OnPluginStart()
  * ---------------------------------------------------------------- */
 public OnConVarChange(Handle:convar, const String:oldValue[], const String:newValue[])
 {
-	// Declare new and old keys from trie and the cvar name
-	decl oldNum, newNum, String:cvarName[32];
+	// Declare some dummies
+	decl oldNum, String:cvarName[32];
 
 	// This callback will not automatically hook changes for every single CVar, so we have to check for what CVar value has changed
 	GetConVarName(convar, cvarName, sizeof(cvarName));
 
 	// Skip the first 7 characters in name string to avoid comparing with the "sm_fix_"
-	GetTrieValue(ProjectilesTrie, cvarName[7], oldNum);
-
-	for (new i; i < sizeof(tf_projectiles); i++) // i=0
+	if (GetTrieValue(ProjectilesTrie, cvarName[7], oldNum))
 	{
-		// If cvarname is equal to any which is in projectiles trie,
-		if (StrEqual(cvarName[7], tf_projectiles[i]))
+		// Loop through all projectiles
+		for (new i; i < sizeof(tf_projectiles); i++)
 		{
-			// Assign new trie value and break the loop
-			newNum = i;
-			break;
+			// If cvar name is equal to any which is in projectiles trie
+			if (StrEqual(cvarName[7], tf_projectiles[i]))
+			{
+				// Convert changed value to integer
+				switch (StringToInt(newValue))
+				{
+					case false: RemoveFromTrie(ProjectilesTrie, tf_projectiles[oldNum]); // Remove a key from projectiles trie
+					case true: SetTrieValue(ProjectilesTrie, cvarName[7], i, false);     // Register a new key in trie
+				}
+			}
 		}
-	}
-
-	switch (StringToInt(newValue))
-	{
-		case false: RemoveFromTrie(ProjectilesTrie, tf_projectiles[oldNum]);  // Remove a key from projectiles trie
-		case true: SetTrieValue(ProjectilesTrie, cvarName[7], newNum, false); // Register new key, but dont overwrite previous one on match
 	}
 }
 
@@ -246,7 +246,7 @@ public OnConVarChange(Handle:convar, const String:oldValue[], const String:newVa
  * ---------------------------------------------------------------- */
 public OnBossEvents(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	// Since bosses dont have collision group and no contentsmask, we have to unhook projectiles
+	// Bosses dont have collision group nor contentsmask, we have to unhook projectiles
 	if (StrContains(name, "summoned",     false) != -1) HookProjectiles = false;
 	else if (StrContains(name, "killed",  false) != -1  // Enable hook if boss has escaped/killed
 	||       StrContains(name, "escaped", false) != -1  // Or new round is started
@@ -264,7 +264,7 @@ public OnEntityCreated(entity, const String:classname[])
 	// Skip the first 14 characters in classname string to avoid comparing with the "tf_projectile_" prefix (optimizations)
 	if (HookProjectiles && GetTrieValue(ProjectilesTrie, classname[14], projectile))
 	{
-		// If I'd use not Post hook (with new collision group), plugin would never detect when projectile collides with a players
+		// If I'd use not Post hook (with new collision group) - plugin would never detect when projectile collides with a players
 		SDKHook(entity, SDKHook_SpawnPost, OnProjectileSpawned);
 	}
 }
