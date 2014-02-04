@@ -90,7 +90,7 @@ public Plugin:myinfo =
 	description = "Simply fixes projectiles not flying through team mates",
 	version     = PLUGIN_VERSION,
 	url         = "forums.alliedmods.net/showthread.php?p=2000641"
-};
+}
 
 
 /* OnPluginStart()
@@ -342,7 +342,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 				{
 					SetEntData(entity, m_CollisionGroup, 24, 4, true); // Use 3 for projectiles to prevent flying through buildings
 				}
-				//default: // Syringes, scout ballz
+				//default: // Syringes & scout ballz
 			}
 		}
 	}
