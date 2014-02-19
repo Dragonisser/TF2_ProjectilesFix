@@ -337,7 +337,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 			// Retrieve the changed collision group for hit projectile
 			switch (GetEntData(entity, m_CollisionGroup))
 			{
-				//case num: // Cleaver, jars, pipe bombs
+				//case num: // Cleaver, jars & pipe bombs
 				case 3:
 				{
 					SetEntData(entity, m_CollisionGroup, 24, 4, true); // Use 3 for projectiles to prevent flying through buildings
@@ -355,7 +355,7 @@ public bool:OnProjectileCollide(entity, collisiongroup, contentsmask, bool:resul
 public bool:TraceFilter(this, contentsMask, any:client)
 {
 	// Both projectile and player should be valid
-	if (IsValidEntity(this) && IsValidClient(client)
+	if (IsValidEdict(this) && IsValidClient(client)
 	&& this != client && GetTeam(this) == GetTeam(client))
 	{
 		return false;
