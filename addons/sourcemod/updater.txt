@@ -1,0 +1,20 @@
+"Updater"
+{
+	"Information"
+	{
+		"Version"
+		{
+			"Latest"		"1.1.0"
+			"Previous"		"1.0.1
+		}
+
+		"Notes"	"Changes in 1.1.0:"
+		"Notes"	"Update to SM 1.11 syntax and code cleanup"
+	}
+
+	"Files"
+	{
+		"Plugin"		"Path_SM/addons/sourcemod/plugins/tf_projectiles_fix.smx"
+		"Source"		"Path_SM/addons/sourcemod/scripting/tf_projectiles_fix.sp"
+	}
+}
