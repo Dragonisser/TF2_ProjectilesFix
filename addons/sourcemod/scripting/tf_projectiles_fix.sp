@@ -294,8 +294,6 @@ public bool OnProjectileCollide(int entity, int collisiongroup, int contentsmask
 
 	// Get the rocket owner (it automatically detects deflector as well)
 	owner = GetProjectileOwner(entity);
-	char ownerName[32];
-	GetClientName(owner, ownerName, sizeof(ownerName));
 
 	// Create TraceRay to check whether or not projectiles goes through a valid player
 	// TR(StartPos, DirectPos, player's contentsmask, infinite and with filter (which includes owner index))
